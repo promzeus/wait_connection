@@ -40,7 +40,8 @@ func main() {
 		}
 
 		if connCount <= int(*expectedNumberConn) {
-			fmt.Println("Expected number of active connections reached. Exiting.")
+			duration := time.Since(startTime)
+			fmt.Printf("Expected number of active connections reached. Exiting. It took %.2f seconds to close.\n", duration.Seconds())
 			os.Exit(0)
 		}
 
