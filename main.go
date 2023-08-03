@@ -15,7 +15,8 @@ func main() {
 	workingTimeLimit := flag.Duration("t", 0, "timeout duration for the program (e.g., 30s or 1m)")
 	flag.Parse()
 
-	connCount := 0
+	prevConnCount := -1
+
 	startTime := time.Now()
 
 	for {
@@ -25,20 +26,23 @@ func main() {
 			os.Exit(1)
 		}
 
+		connCount := 0
+
 		for _, conn := range conns {
-			if conn.Laddr.Port == uint32(*portPtr) {
+			if conn.Laddr.Port == uint32(*portPtr) && conn.Status == "ESTABLISHED" {
 				connCount++
 			}
 		}
 
-		fmt.Printf("Connections on port %d: %d\n", *portPtr, connCount)
-
-		if connCount <= int(*expectedNumberConn) {
-			fmt.Println("Expected number of connections reached. Exiting.")
-			os.Exit(0)
+		if connCount != prevConnCount {
+			fmt.Printf("Active connections on port %d: %d\n", *portPtr, connCount)
+			prevConnCount = connCount
 		}
 
-		connCount = 0
+		if connCount <= int(*expectedNumberConn) {
+			fmt.Println("Expected number of active connections reached. Exiting.")
+			os.Exit(0)
+		}
 
 		if *workingTimeLimit > 0 {
 			elapsed := time.Since(startTime)
