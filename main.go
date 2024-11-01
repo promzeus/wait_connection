@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/net"
@@ -13,10 +14,12 @@ func main() {
 	portPtr := flag.Int("port", 8080, "port to check connections on")
 	expectedNumberConn := flag.Int("conn", 1, "expected number of connections")
 	workingTimeLimit := flag.Duration("t", 0, "timeout duration for the program (e.g., 30s or 1m)")
+	statesPtr := flag.String("states", "ESTABLISHED,FIN_WAIT_1,FIN_WAIT_2,CLOSE_WAIT,TIME_WAIT", "TCP states to monitor, separated by commas")
+
 	flag.Parse()
 
+	monitoredStates := strings.Split(*statesPtr, ",")
 	prevConnCount := -1
-
 	startTime := time.Now()
 
 	for {
@@ -27,15 +30,14 @@ func main() {
 		}
 
 		connCount := 0
-
 		for _, conn := range conns {
-			if conn.Laddr.Port == uint32(*portPtr) && conn.Status == "ESTABLISHED" {
+			if conn.Laddr.Port == uint32(*portPtr) && contains(monitoredStates, conn.Status) {
 				connCount++
 			}
 		}
 
 		if connCount != prevConnCount {
-			fmt.Printf("Active connections on port %d: %d\n", *portPtr, connCount)
+			fmt.Printf("Active connections on port %d with states %v: %d\n", *portPtr, monitoredStates, connCount)
 			prevConnCount = connCount
 		}
 
@@ -55,4 +57,13 @@ func main() {
 
 		time.Sleep(time.Second)
 	}
+}
+
+func contains(states []string, state string) bool {
+	for _, s := range states {
+		if s == state {
+			return true
+		}
+	}
+	return false
 }
